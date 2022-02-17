@@ -2,6 +2,7 @@ from curses.ascii import HT
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
@@ -54,6 +55,16 @@ def get_session():
 
 
 app = FastAPI()
+
+origins = ["http://localhost", "http://localhost:3000"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
