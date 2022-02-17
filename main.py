@@ -1,7 +1,7 @@
 from curses.ascii import HT
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
@@ -48,6 +48,11 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+
 app = FastAPI()
 
 
@@ -57,52 +62,49 @@ def on_startup():
 
 
 @app.get("/contacts/", response_model=List[ContactRead])
-def read_contacts():
-    with Session(engine) as session:
-        contacts = session.exec(select(Contact)).all()
-        return contacts
+def read_contacts(*, session: Session = Depends(get_session)):
+    contacts = session.exec(select(Contact)).all()
+    return contacts
 
 
 @app.get("/contacts/{contact_id}", response_model=ContactRead)
-def read_contact(contact_id: int):
-    with Session(engine) as session:
-        contact = session.get(Contact, contact_id)
-        if not contact:
-            raise HTTPException(status_code=404, detail="Contact not found")
-        return contact
+def read_contact(*, session: Session = Depends(get_session), contact_id: int):
+    contact = session.get(Contact, contact_id)
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return contact
 
 
 @app.patch("/contacts/{contact_id}", response_model=ContactRead)
-def update_contact(contact_id: int, contact: ContactUpdate):
-    with Session(engine) as session:
-        db_contact = session.get(Contact, contact_id)
-        if not db_contact:
-            raise HTTPException(status_code=404, detail="Contact not found")
-        contact_data = contact.dict(exclude_unset=True)
-        for key, value in contact_data.items():
-            setattr(db_contact, key, value)
-        session.add(db_contact)
-        session.commit()
-        session.refresh(db_contact)
-        return db_contact
+def update_contact(
+    *, session: Session = Depends(get_session), contact_id: int, contact: ContactUpdate
+):
+    db_contact = session.get(Contact, contact_id)
+    if not db_contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    contact_data = contact.dict(exclude_unset=True)
+    for key, value in contact_data.items():
+        setattr(db_contact, key, value)
+    session.add(db_contact)
+    session.commit()
+    session.refresh(db_contact)
+    return db_contact
 
 
 @app.post("/contacts/", response_model=ContactRead)
-def create_contact(contact: ContactCreate):
-    with Session(engine) as session:
-        db_contact = Contact.from_orm(contact)
-        session.add(db_contact)
-        session.commit()
-        session.refresh(db_contact)
-        return db_contact
+def create_contact(*, session: Session = Depends(get_session), contact: ContactCreate):
+    db_contact = Contact.from_orm(contact)
+    session.add(db_contact)
+    session.commit()
+    session.refresh(db_contact)
+    return db_contact
 
 
 @app.delete("/contacts/{contact_id}")
-def delete_contact(contact_id: int):
-    with Session(engine) as session:
-        contact = session.get(Contact, contact_id)
-        if not contact:
-            raise HTTPException(status_code=404, detail="Contact not found")
-        session.delete(contact)
-        session.commit()
-        return {"ok": True}
+def delete_contact(*, session: Session = Depends(get_session), contact_id: int):
+    contact = session.get(Contact, contact_id)
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    session.delete(contact)
+    session.commit()
+    return {"ok": True}
