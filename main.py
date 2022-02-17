@@ -1,11 +1,10 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import FastAPI
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
-class Contact(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+class ContactBase(SQLModel):
     first_name: str = Field(index=True)
     last_name: str = Field(index=True)
     email: str
@@ -14,6 +13,17 @@ class Contact(SQLModel, table=True):
     suburb: str
     postcode: str
 
+
+class Contact(ContactBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
+class ContactCreate(ContactBase):
+    pass
+
+
+class ContactRead(ContactBase):
+    id: int
 
 
 sqlite_file_name = "crc_sqlite.db"
@@ -35,16 +45,17 @@ def on_startup():
     create_db_and_tables()
 
 
-@app.post("/contacts/")
-def create_contact(contact: Contact):
+@app.post("/contacts/", response_model=ContactRead)
+def create_contact(contact: ContactCreate):
     with Session(engine) as session:
-        session.add(contact)
+        db_contact = Contact.from_orm(contact)
+        session.add(db_contact)
         session.commit()
-        session.refresh(contact)
-        return contact
+        session.refresh(db_contact)
+        return db_contact
 
 
-@app.get("/contacts/")
+@app.get("/contacts/", response_model=List[ContactRead])
 def read_contacts():
     with Session(engine) as session:
         contacts = session.exec(select(Contact)).all()
