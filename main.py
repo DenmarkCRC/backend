@@ -1,17 +1,18 @@
+from curses.ascii import HT
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
 class ContactBase(SQLModel):
     first_name: str = Field(index=True)
     last_name: str = Field(index=True)
-    email: str
-    street_number: str
-    street_name: str
-    suburb: str
-    postcode: str
+    email: Optional[str] = Field(default=None)
+    street_number: Optional[str] = Field(default=None)
+    street_name: Optional[str] = Field(default=None)
+    suburb: Optional[str] = Field(default=None)
+    postcode: Optional[str] = Field(default=None)
 
 
 class Contact(ContactBase, table=True):
@@ -24,6 +25,16 @@ class ContactCreate(ContactBase):
 
 class ContactRead(ContactBase):
     id: int
+
+
+class ContactUpdate(SQLModel):
+    first_name: str = None
+    last_name: str = None
+    email: Optional[str] = None
+    street_number: Optional[str] = None
+    street_name: Optional[str] = None
+    suburb: Optional[str] = None
+    postcode: Optional[str] = None
 
 
 sqlite_file_name = "crc_sqlite.db"
@@ -45,6 +56,37 @@ def on_startup():
     create_db_and_tables()
 
 
+@app.get("/contacts/", response_model=List[ContactRead])
+def read_contacts():
+    with Session(engine) as session:
+        contacts = session.exec(select(Contact)).all()
+        return contacts
+
+
+@app.get("/contacts/{contact_id}", response_model=ContactRead)
+def read_contact(contact_id: int):
+    with Session(engine) as session:
+        contact = session.get(Contact, contact_id)
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        return contact
+
+
+@app.patch("/contacts/{contact_id}", response_model=ContactRead)
+def update_contact(contact_id: int, contact: ContactUpdate):
+    with Session(engine) as session:
+        db_contact = session.get(Contact, contact_id)
+        if not db_contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        contact_data = contact.dict(exclude_unset=True)
+        for key, value in contact_data.items():
+            setattr(db_contact, key, value)
+        session.add(db_contact)
+        session.commit()
+        session.refresh(db_contact)
+        return db_contact
+
+
 @app.post("/contacts/", response_model=ContactRead)
 def create_contact(contact: ContactCreate):
     with Session(engine) as session:
@@ -55,8 +97,12 @@ def create_contact(contact: ContactCreate):
         return db_contact
 
 
-@app.get("/contacts/", response_model=List[ContactRead])
-def read_contacts():
+@app.delete("/contacts/{contact_id}")
+def delete_contact(contact_id: int):
     with Session(engine) as session:
-        contacts = session.exec(select(Contact)).all()
-        return contacts
+        contact = session.get(Contact, contact_id)
+        if not contact:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        session.delete(contact)
+        session.commit()
+        return {"ok": True}
