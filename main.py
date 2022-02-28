@@ -38,6 +38,29 @@ class ContactUpdate(SQLModel):
     postcode: Optional[str] = None
 
 
+# coaches
+class CoachBase(SQLModel):
+    first_name: str = Field(index=True)
+    last_name: str = Field(index=True)
+    description: Optional[str] = Field(default=None)
+    hourly_rate: Optional[str] = Field(default=None)
+    areas: Optional[str] = Field(default=None)
+
+
+class Coach(CoachBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
+class CoachCreate(CoachBase):
+    pass
+
+
+class CoachRead(CoachBase):
+    id: int
+
+
+# class CoachUpdate
+
 sqlite_file_name = "crc_sqlite.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
@@ -56,7 +79,9 @@ def get_session():
 
 app = FastAPI()
 
-origins = ["http://localhost", "http://localhost:3000"]
+origins = [
+    "*",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,7 +97,8 @@ def on_startup():
     create_db_and_tables()
 
 
-@app.get("/contacts/", response_model=List[ContactRead])
+# contacts
+@app.put("/contacts/", response_model=List[ContactRead])
 def read_contacts(*, session: Session = Depends(get_session)):
     contacts = session.exec(select(Contact)).all()
     return contacts
@@ -119,3 +145,15 @@ def delete_contact(*, session: Session = Depends(get_session), contact_id: int):
     session.delete(contact)
     session.commit()
     return {"ok": True}
+
+
+# coaches
+
+
+@app.post("/coaches", response_model=CoachRead)
+def create_coach(*, session: Session = Depends(get_session), coach: CoachCreate):
+    db_coach = Coach.from_orm(coach)
+    session.add(db_coach)
+    session.commit()
+    session.refresh(db_coach)
+    return db_coach
