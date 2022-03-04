@@ -1,75 +1,11 @@
-from curses.ascii import HT
-from typing import List, Optional
+from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Session, select
 
-
-class ContactBase(SQLModel):
-    first_name: str = Field(index=True)
-    last_name: str = Field(index=True)
-    email: Optional[str] = Field(default=None)
-    street_number: Optional[str] = Field(default=None)
-    street_name: Optional[str] = Field(default=None)
-    suburb: Optional[str] = Field(default=None)
-    postcode: Optional[str] = Field(default=None)
-
-
-class Contact(ContactBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-
-class ContactCreate(ContactBase):
-    pass
-
-
-class ContactRead(ContactBase):
-    id: int
-
-
-class ContactUpdate(SQLModel):
-    first_name: str = None
-    last_name: str = None
-    email: Optional[str] = None
-    street_number: Optional[str] = None
-    street_name: Optional[str] = None
-    suburb: Optional[str] = None
-    postcode: Optional[str] = None
-
-
-# coaches
-class CoachBase(SQLModel):
-    first_name: str = Field(index=True)
-    last_name: str = Field(index=True)
-    description: Optional[str] = Field(default=None)
-    hourly_rate: Optional[str] = Field(default=None)
-    areas: Optional[str] = Field(default=None)
-
-
-class Coach(CoachBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-
-class CoachCreate(CoachBase):
-    pass
-
-
-class CoachRead(CoachBase):
-    id: int
-
-
-# class CoachUpdate
-
-sqlite_file_name = "crc_sqlite.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
-
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+from models import *
+from database import *
 
 
 def get_session():
