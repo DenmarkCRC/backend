@@ -1,4 +1,5 @@
 /.vscode
 /__pycache__
 /venv
-./crc_sqllite.db
+/app/crc_sqllite.db
+crc_sqlite.db
