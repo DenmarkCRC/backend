@@ -98,7 +98,7 @@ def on_startup():
 
 
 # contacts
-@app.put("/contacts/", response_model=List[ContactRead])
+@app.get("/contacts/", response_model=List[ContactRead])
 def read_contacts(*, session: Session = Depends(get_session)):
     contacts = session.exec(select(Contact)).all()
     return contacts
@@ -148,6 +148,12 @@ def delete_contact(*, session: Session = Depends(get_session), contact_id: int):
 
 
 # coaches
+
+
+@app.get("/coaches", response_model=List[CoachRead])
+def read_coaches(*, session: Session = Depends(get_session)):
+    coaches = session.exec(select(Coach)).all()
+    return coaches
 
 
 @app.post("/coaches", response_model=CoachRead)
