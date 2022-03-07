@@ -2,14 +2,23 @@ from typing import List
 
 from fastapi import Depends, APIRouter, HTTPException
 from sqlmodel import Session, select
-from ..models.contact_model import ContactRead, Contact, ContactUpdate, ContactCreate
+from ..models.contact_model import (
+    ContactRead,
+    Contact,
+    ContactUpdate,
+    ContactCreate,
+    Phone,
+)
 from ..database import get_session
 
 router = APIRouter(prefix="/contacts", tags=["Contacts"])
 
 
 @router.get("/", response_model=List[ContactRead])
+# @router.get("/")
 def read_contacts(*, session: Session = Depends(get_session)):
+    # statement = select(Contact, Phone).where(Phone.contact_id == Contact.id)
+    # contacts = session.exec(statement).all()
     contacts = session.exec(select(Contact)).all()
     return contacts
 

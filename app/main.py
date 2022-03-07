@@ -1,10 +1,7 @@
-from typing import List
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from .models import *
 from .database import engine, create_db_and_tables
 from .routers import contact, coach
 
@@ -33,4 +30,6 @@ def on_startup():
 
 @app.get("/")
 async def root():
-    return {"message": "Hello New World!!!"}
+    return {
+        "message": "Welocome to the CRC internal API, add /docs to the URL for more details!!!"
+    }

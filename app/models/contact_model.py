@@ -1,5 +1,17 @@
-from typing import Optional
-from sqlmodel import Field, SQLModel
+from typing import Optional, List
+from sqlmodel import Field, SQLModel, Relationship
+
+
+class PhoneBase(SQLModel):
+    desc: str = Field(index=True)
+    number: int = Field(index=False)
+    contact_id: Optional[int] = Field(default=None, foreign_key="contact.id")
+
+
+class Phone(PhoneBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    contact: "Contact" = Relationship(back_populates="phones")
 
 
 class ContactBase(SQLModel):
@@ -14,6 +26,7 @@ class ContactBase(SQLModel):
 
 class Contact(ContactBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    phones: List["Phone"] = Relationship(back_populates="contact")
 
 
 class ContactCreate(ContactBase):
@@ -22,6 +35,7 @@ class ContactCreate(ContactBase):
 
 class ContactRead(ContactBase):
     id: int
+    phones: List[Phone] = []
 
 
 class ContactUpdate(SQLModel):
